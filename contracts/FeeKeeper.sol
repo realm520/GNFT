@@ -20,6 +20,7 @@ contract FeeKeeper is Ownable {
     FeeKeeperInfo[] public feeInfo;
     uint256 feeInfoLength;
     uint256 remainFeeRatio = 10000;
+    uint256 defaultTokenRate = 500;
     
 
     constructor(IERC20 _feeToken) {
@@ -27,12 +28,17 @@ contract FeeKeeper is Ownable {
     }
 
     function getTokenFeeRate(uint256 _tokenId) external view returns (uint256 feeRate) {
-        return tokenRate[_tokenId];
+        uint256 rate = tokenRate[_tokenId];
+        return rate > 0 ? rate : defaultTokenRate;
     }
 
     function setTokenFeeRate(uint256 _tokenId, uint256 _feeRate) public onlyOwner {
-        require(_feeRate > 0, "setTokenFeeRate: invalid fee rate.");
+        require(_feeRate > 0 && _feeRate < 10000, "setTokenFeeRate: invalid fee rate.");
         tokenRate[_tokenId] = _feeRate;
+    }
+
+    function checkFee(address _user) public view returns(uint256 fee) {
+        return feeAssignment[_user];
     }
 
     function addFeeKeeper(address _keeper, uint256 _ratio) public onlyOwner {
@@ -54,7 +60,6 @@ contract FeeKeeper is Ownable {
     }
 
     function removeKeeper(address _keeper) public onlyOwner {
-        bool keeperExist = false;
         for (uint i=0; i<feeInfoLength; i++) {
             if (feeInfo[i].keeper == _keeper) {
                 feeInfo[i].keeper = feeInfo[feeInfoLength-1].keeper;

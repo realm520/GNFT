@@ -8,7 +8,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "./interfaces/INFTExchange.sol";
 
-contract GArtItem is ERC721, ERC721Enumerable, Ownable {
+contract GArtItem is ERC721Enumerable, Ownable {
+    using Counters for Counters.Counter;
     Counters.Counter private _tokenIdTracker;
     INFTExchange private _platform;
 
@@ -24,10 +25,10 @@ contract GArtItem is ERC721, ERC721Enumerable, Ownable {
             return;
         }
         require(from == address(_platform) , "_beforeTokenTransfer: transfer from platform is required.");
-        uint256 permitPrice = _platform.checkPrice(from, to, tokenId);
+        _platform.checkPrice(from, to, tokenId);
     }
 
-    function _baseURI() internal view virtual returns (string memory) {
+    function _baseURI() internal view virtual override returns (string memory) {
         return "https://tokenid.gnft.com/";
     }
 

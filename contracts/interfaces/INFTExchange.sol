@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 interface INFTExchange {
-    function getPrice(uint256 _tokenId) external view returns (lastPrice, avgPrice);
-    function checkPrice(address _from, uint256 _tokenId) external;
+    function getPrice(uint256 _tokenid) external view returns (uint256);
+    function checkPrice(address _from, address _to, uint256 _tokenid) external;
 }
 
