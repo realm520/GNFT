@@ -12,11 +12,29 @@ async function main(): Promise<void> {
   // await run("compile");
 
   // We get the contract to deploy
-  const Greeter: ContractFactory = await ethers.getContractFactory("Greeter");
-  const greeter: Contract = await Greeter.deploy("Hello, Buidler!");
-  await greeter.deployed();
+  const USDT: ContractFactory = await ethers.getContractFactory("USDT");
+  const usdt: Contract = await USDT.deploy();
+  await usdt.deployed();
+  console.log("USDT deployed to: ", usdt.address);
 
-  console.log("Greeter deployed to: ", greeter.address);
+  const FeeKeeper: ContractFactory = await ethers.getContractFactory("FeeKeeper");
+  const feeKeeper: Contract = await FeeKeeper.deploy(usdt.address);
+  await feeKeeper.deployed();
+  console.log("FeeKeeper deployed to: ", feeKeeper.address);
+
+  const Exchange: ContractFactory = await ethers.getContractFactory("GNFTExchange");
+  const exchange: Contract = await Exchange.deploy();
+  await exchange.deployed();
+  console.log("GNFTExchange deployed to: ", exchange.address);
+
+  const NFT: ContractFactory = await ethers.getContractFactory("GNFT");
+  const nft: Contract = await NFT.deploy(exchange.address);
+  await nft.deployed();
+  console.log("NFT deployed to: ", nft.address);
+
+  exchange.setFeeContract(feeKeeper.address);
+  exchange.setNftContract(nft.address);
+  console.log("NFTExchange initialized.");
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -68,6 +68,11 @@ const config: HardhatUserConfig = {
       },
       chainId: chainIds.hardhat,
     },
+    hecotest: {
+      accounts: "remote",
+      chainId: 123,
+      url: "http://192.168.1.123:12001/",
+    },
     goerli: createTestnetConfig("goerli"),
     kovan: createTestnetConfig("kovan"),
     rinkeby: createTestnetConfig("rinkeby"),

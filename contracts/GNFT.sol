@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "./interfaces/INFTExchange.sol";
 
-contract GArtItem is ERC721Enumerable, Ownable {
+contract GNFT is ERC721Enumerable, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIdTracker;
     INFTExchange private _platform;
