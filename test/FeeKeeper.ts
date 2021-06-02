@@ -16,7 +16,7 @@ describe("Unit tests", function () {
     const signers: SignerWithAddress[] = await hre.ethers.getSigners();
     this.signers.admin = signers[0];
     this.signers.platform = signers[1];
-    this.signers.auther = signers[2];
+    this.signers.author = signers[2];
   });
 
   describe("FeeKeeper", function () {

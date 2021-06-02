@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "hardhat/console.sol";
 
 contract FeeKeeper is Ownable {
     using SafeMath for uint256;
@@ -73,7 +74,7 @@ contract FeeKeeper is Ownable {
     function assignFee(uint256 _fee) external {
         require(_fee > 0, "assignFee: invalid fee.");
         for (uint i=0; i<feeInfoLength; i++) {
-            uint256 fee = _fee.mul(100000000).mul(feeInfo[i].ratio).div(10000).div(1000000000);
+            uint256 fee = _fee.mul(100000000).mul(feeInfo[i].ratio).div(10000).div(100000000);
             if (fee > 0) {
                 feeAssignment[feeInfo[i].keeper] = feeAssignment[feeInfo[i].keeper] + fee;
             }
