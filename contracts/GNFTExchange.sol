@@ -38,6 +38,8 @@ contract GNFTExchange is Ownable {
 
     function sellNFT(uint256 _tokenid, uint256 _price) external {
         require(nftContract.ownerOf(_tokenid)==msg.sender, "sellNFT: Sender is not owner of given tokenid.");
+        uint256[] storage pricesList = tokenPrice[_tokenid];
+        pricesList.push(0);
         nftContract.transferFrom(msg.sender, address(this), _tokenid);
         require(nftContract.ownerOf(_tokenid)==address(this), "sellNFT: Transfer failed.");
         orders[msg.sender][_tokenid] = _price;
@@ -68,11 +70,10 @@ contract GNFTExchange is Ownable {
         address seller = orderIndex[_tokenid];
         require(seller!=address(0), "buyNFT: tokenid not on list.");
         uint256 price = orders[seller][_tokenid];
-        payProcess(msg.sender, seller, _tokenid, price);
+        //payProcess(msg.sender, seller, _tokenid, price);
         nftContract.transferFrom(address(this), msg.sender, _tokenid);
         uint256[] storage pricesList = tokenPrice[_tokenid];
         if (pricesList.length == 0) {
-            pricesList.push(price);
             pricesList.push(price);
         } else {
             uint256 totalValue = pricesList[0].mul(pricesList.length-1) + price;
@@ -83,11 +84,18 @@ contract GNFTExchange is Ownable {
 
     function getPrice(uint256 _tokenid) public view returns (uint256) {
         uint256[] storage pricesList = tokenPrice[_tokenid];
-        return pricesList[pricesList.length-1];
+        if (pricesList.length == 0) {
+            return 0;
+        } else {
+            return pricesList[pricesList.length-1];
+        }
     }
 
     function checkPrice(address _from, address _to, uint256 _tokenid) external {
         uint256 permitPrice = getPrice(_tokenid);
+        if (permitPrice == 0) {
+            return 0;
+        }
         uint256 payerBalance = usdtContract.balanceOf(_to);
         require(payerBalance >= permitPrice, "checkPrice: insufficient balance.");
         payProcess(_to, _from, _tokenid, permitPrice);
