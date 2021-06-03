@@ -7,14 +7,18 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "./interfaces/INFTExchange.sol";
+import "./interfaces/IFeeKeeper.sol";
+import "hardhat/console.sol";
 
 contract GNFT is ERC721Enumerable, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIdTracker;
     INFTExchange private _platform;
+    IFeeKeeper private _fee;
 
-    constructor(INFTExchange platform) ERC721("GArtItem", "GNFT") {
+    constructor(INFTExchange platform, IFeeKeeper fee) ERC721("GArtItem", "GNFT") {
         _platform = platform;
+        _fee = fee;
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal virtual override {
@@ -24,7 +28,7 @@ contract GNFT is ERC721Enumerable, Ownable {
         if (address(0) == from || address(0) == to) {
             return;
         }
-        require(from == address(_platform) , "_beforeTokenTransfer: transfer from platform is required.");
+        //require(from == address(_platform) , "_beforeTokenTransfer: transfer from platform is required.");
         _platform.checkPrice(from, to, tokenId);
     }
 
@@ -32,9 +36,11 @@ contract GNFT is ERC721Enumerable, Ownable {
         return "https://tokenid.gnft.com/";
     }
 
-    function mint(address to) public onlyOwner {
-        _mint(to, _tokenIdTracker.current());
+    function mint(address to, address author, uint256 ratio) public onlyOwner {
+        uint256 currentId = _tokenIdTracker.current();
+        _mint(to, currentId);
         _tokenIdTracker.increment();
+        _fee.setAuthorTokenFee(address(this), currentId, author, ratio);
     }
 
 }

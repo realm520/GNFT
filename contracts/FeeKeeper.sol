@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "hardhat/console.sol";
 
 contract FeeKeeper is Ownable {
@@ -15,12 +16,11 @@ contract FeeKeeper is Ownable {
         uint256 ratio;
     }
 
-    IERC20 feeToken;
-    mapping(uint256 => uint256) tokenRate;
+    IERC20 public feeToken;
     mapping(address => uint256) feeAssignment;
     FeeKeeperInfo[] public feeInfo;
+    mapping(uint256 => FeeKeeperInfo) authorTokenFee;
     uint256 feeInfoLength;
-    uint256 remainFeeRatio = 10000;
     uint256 defaultTokenRate = 500;
     
 
@@ -28,36 +28,53 @@ contract FeeKeeper is Ownable {
         feeToken = _feeToken;
     }
 
-    function getTokenFeeRate(uint256 _tokenId) external view returns (uint256 feeRate) {
-        uint256 rate = tokenRate[_tokenId];
-        return rate > 0 ? rate : defaultTokenRate;
+    function getFeeToken() external view returns (address) {
+        return address(feeToken);
     }
 
-    function setTokenFeeRate(uint256 _tokenId, uint256 _feeRate) public onlyOwner {
-        require(_feeRate > 0 && _feeRate < 10000, "setTokenFeeRate: invalid fee rate.");
-        tokenRate[_tokenId] = _feeRate;
+    function getTokenFeeRate(uint256 _tokenId) external view returns (uint256) {
+        uint256 rate = authorTokenFee[_tokenId].ratio;
+        for (uint i=0; i<feeInfoLength; i++) {
+            rate = rate + feeInfo[i].ratio;
+        }
+        return rate;
     }
 
     function checkFee(address _user) public view returns(uint256 fee) {
         return feeAssignment[_user];
     }
 
+    function setAuthorTokenFee(address _nft, uint256 _tokenId, address _author, uint256 _ratio) external {
+        require(IERC721(_nft).ownerOf(_tokenId) != address(0), "setAuthorTokenFee: invalid tokenid.");
+        require(_author != address(0), "setAuthorTokenFee: invalid author address.");
+        require(_ratio < 10000, "setAuthorTokenFee: invalid author ratio.");
+        FeeKeeperInfo storage author = authorTokenFee[_tokenId];
+        require(author.keeper == address(0), "setAuthorTokenFee: change author fee not permitted.");
+        author.keeper = _author;
+        author.ratio = _ratio;
+    }
+
     function addFeeKeeper(address _keeper, uint256 _ratio) public onlyOwner {
         require(_keeper != address(0), "addFeeKeeper: invalid keeper.");
-        require(_ratio <= remainFeeRatio, "addFeeKeeper: invalid ratio.");
+        require(_ratio < 10000, "addFeeKeeper: invalid ratio.");
         bool keeperExist = false;
+        uint256 totalRatio = 0;
         for (uint i=0; i<feeInfoLength; i++) {
             if (feeInfo[i].keeper == _keeper) {
                 feeInfo[i].ratio = _ratio;
                 keeperExist = true;
-                break;
+                totalRatio = totalRatio + _ratio;
+            } else {
+                totalRatio = totalRatio + feeInfo[i].ratio;
             }
         }
         if (!keeperExist) {
             FeeKeeperInfo memory newKeeper = FeeKeeperInfo(_keeper, _ratio);
             feeInfo.push(newKeeper);
             feeInfoLength = feeInfoLength + 1;
+            totalRatio = totalRatio + _ratio;
         }
+        require(totalRatio < 10000, "addFeeKeeper: invalid total ratio.");
     }
 
     function removeKeeper(address _keeper) public onlyOwner {
@@ -71,13 +88,17 @@ contract FeeKeeper is Ownable {
         }
     }
 
-    function assignFee(uint256 _fee) external {
-        require(_fee > 0, "assignFee: invalid fee.");
+    function assignFee(uint256 _tokenid, uint256 _price) external {
+        require(_price > 0, "assignFee: invalid fee and price.");
         for (uint i=0; i<feeInfoLength; i++) {
-            uint256 fee = _fee.mul(100000000).mul(feeInfo[i].ratio).div(10000).div(100000000);
+            uint256 fee = _price.mul(100000000).mul(feeInfo[i].ratio).div(10000).div(100000000);
             if (fee > 0) {
                 feeAssignment[feeInfo[i].keeper] = feeAssignment[feeInfo[i].keeper] + fee;
             }
+        }
+        FeeKeeperInfo memory author = authorTokenFee[_tokenid];
+        if (author.ratio > 0) {
+            feeAssignment[author.keeper] = feeAssignment[author.keeper] + _price.mul(100000000).mul(author.ratio).div(10000).div(100000000);
         }
     }
 
