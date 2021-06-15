@@ -55,10 +55,10 @@ export function shouldBehaveLikeFeeKeeper(): void {
     expect(await this.feeKeeper.checkFee(this.signers.platform.address)).to.equal(900);
     expect(await this.usdt.balanceOf(this.feeKeeper.address)).to.be.eq(2700);
     // admin transfer nft to platform (fail)
-    await expect(this.nft.transferFrom(this.signers.admin.address, this.signers.platform.address, 0)).to.be.revertedWith("checkPrice: insufficient balance.");
+    await expect(this.nft.transferFrom(this.signers.admin.address, this.signers.platform.address, 0)).to.be.revertedWith("checkPrice: insufficient balance for last fee.");
     // admin transfer nft to buyer
     await this.nft.transferFrom(this.signers.admin.address, this.signers.buyer.address, 0);
-    expect(await this.usdt.allowance(this.signers.buyer.address, this.ex.address)).to.be.eq(970000);
+    expect(await this.usdt.allowance(this.signers.buyer.address, this.ex.address)).to.be.eq(988200);
   });
 
 }

@@ -17,18 +17,18 @@ async function main(): Promise<void> {
   await usdt.deployed();
   console.log("USDT deployed to: ", usdt.address);
 
-  const FeeKeeper: ContractFactory = await ethers.getContractFactory("FeeKeeper");
-  const feeKeeper: Contract = await FeeKeeper.deploy(usdt.address);
-  await feeKeeper.deployed();
-  console.log("FeeKeeper deployed to: ", feeKeeper.address);
-
   const Exchange: ContractFactory = await ethers.getContractFactory("GNFTExchange");
   const exchange: Contract = await Exchange.deploy();
   await exchange.deployed();
   console.log("GNFTExchange deployed to: ", exchange.address);
 
+  const FeeKeeper: ContractFactory = await ethers.getContractFactory("FeeKeeper");
+  const feeKeeper: Contract = await FeeKeeper.deploy(usdt.address);
+  await feeKeeper.deployed();
+  console.log("FeeKeeper deployed to: ", feeKeeper.address);
+
   const NFT: ContractFactory = await ethers.getContractFactory("GNFT");
-  const nft: Contract = await NFT.deploy(exchange.address);
+  const nft: Contract = await NFT.deploy(exchange.address, feeKeeper.address);
   await nft.deployed();
   console.log("NFT deployed to: ", nft.address);
 
