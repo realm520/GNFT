@@ -37,9 +37,17 @@ async function main(): Promise<void> {
   console.log("NFTExchange initialized.");
 }
 
+
+async function mock(): Promise<void> {
+  const ERC20PermitMock: ContractFactory = await ethers.getContractFactory("ERC20PermitMock");
+  const mock: Contract = await ERC20PermitMock.deploy("MSC", "MSC");
+  await mock.deployed();
+  console.log("ERC20PermitMock deployed to: ", mock.address);
+}
+
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-main()
+mock()
   .then(() => process.exit(0))
   .catch((error: Error) => {
     console.error(error);
