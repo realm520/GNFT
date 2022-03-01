@@ -8,14 +8,14 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 
 contract Bridge is Ownable, Pausable, ReentrancyGuard {
-    address internal operator1;
-    address internal operator2;
+    address public operator1;
+    address public operator2;
     struct TokenOut {
         address to;
         uint256 value;
         int approveCount;
     }
-    TokenOut[] outs;
+    mapping(string => TokenOut) outs;
     int outsSize;
     struct TokenIn {
         address from;
@@ -44,14 +44,57 @@ contract Bridge is Ownable, Pausable, ReentrancyGuard {
         _unpause();
     }
 
-    function sendToken(address  _token, address _to, uint256 _value) public whenNotPaused nonReentrant {
+    function sendToken(string memory _fromHash, address  _token, address _to, uint256 _value) public whenNotPaused nonReentrant {
         require(operator1 == msg.sender || operator2 == msg.sender, "Invalid opeartor");
-        IERC20(_token).transfer(_to, _value);
+        require(_value > 0, "Invalid value");
+        TokenOut storage out = outs[_fromHash];
+        if (out.value <= 0) {
+            int approval;
+            if (msg.sender == operator1) {
+                approval = 1;
+            } else {
+                approval = 2;
+            }
+            outs[_fromHash] = TokenOut({
+                to: _to,
+                value: _value,
+                approveCount: approval
+            });
+        } else {
+            if ((msg.sender == operator1 && out.approveCount == 2) || (msg.sender == operator2 && out.approveCount == 1)) {
+                IERC20(_token).transfer(_to, _value);
+                out.approveCount = 3;
+            } else {
+                revert("Invalid approval count");
+            }
+        }
     }
 
-    function sendEther(address _to, uint256 _value) public whenNotPaused nonReentrant {
+    function sendEther(string memory _fromHash, address payable _to, uint256 _value) public whenNotPaused nonReentrant {
         require(operator1 == msg.sender || operator2 == msg.sender, "Invalid opeartor");
-        
+        require(_value > 0, "Invalid value");
+        TokenOut storage out = outs[_fromHash];
+        if (out.value <= 0) {
+            int approval;
+            if (msg.sender == operator1) {
+                approval = 1;
+            } else {
+                approval = 2;
+            }
+            outs[_fromHash] = TokenOut({
+                to: _to,
+                value: _value,
+                approveCount: approval
+            });
+        } else {
+            if ((msg.sender == operator1 && out.approveCount == 2) || (msg.sender == operator2 && out.approveCount == 1)) {
+                (bool sent, bytes memory data) = _to.call{value: _value}("");
+                require(sent, "Failed to send Ether");
+                out.approveCount = 3;
+            } else {
+                revert("Invalid approval count");
+            }
+        }
     }
 
     function deposit(address _token, uint256 _value) payable public whenNotPaused nonReentrant {
@@ -73,8 +116,12 @@ contract Bridge is Ownable, Pausable, ReentrancyGuard {
         }
     }
 
-    function getIns(uint256 offset) public view returns (TokenIn memory result) {
+    function getIn(uint256 offset) public view returns (TokenIn memory result) {
         require(ins.length > offset || offset < 0, "Invalid offset");
         result = ins[offset];
+    }
+
+    function getOut(string memory fromHash) public view returns (TokenOut memory result) {
+        return outs[fromHash];
     }
 }
