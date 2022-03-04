@@ -11,17 +11,19 @@ contract Bridge is Ownable, Pausable, ReentrancyGuard {
     address public operator1;
     address public operator2;
     struct TokenOut {
+        address token;
         address to;
         uint256 value;
         int approveCount;
     }
-    mapping(string => TokenOut) outs;
-    int outsSize;
+    mapping(uint256 => TokenOut) outs;
     struct TokenIn {
+        address token;
         address from;
         uint256 value;
     }
-    TokenIn[] ins;
+    mapping(uint256 => TokenIn) ins;
+    uint256 inLength;
 
     constructor() {
     }
@@ -44,10 +46,29 @@ contract Bridge is Ownable, Pausable, ReentrancyGuard {
         _unpause();
     }
 
-    function sendToken(string memory _fromHash, address  _token, address _to, uint256 _value) public whenNotPaused nonReentrant {
+    event Received(address, uint);
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
+    }
+
+    function withdraw(address _token) external onlyOwner {
+        if (address(this).balance > 0) {
+            payable(msg.sender).transfer(address(this).balance);
+        }
+        uint256 tokenBalance = IERC20(_token).balanceOf(address(this));
+        if (tokenBalance >0) {
+            IERC20(_token).transfer(msg.sender, tokenBalance);
+        }
+    }
+
+    function getBalance() external view returns (uint) {
+        return address(this).balance;
+    }
+
+    function sendToken(uint256 _fromIndex, address _token, address _to, uint256 _value) public whenNotPaused nonReentrant {
         require(operator1 == msg.sender || operator2 == msg.sender, "Invalid opeartor");
         require(_value > 0, "Invalid value");
-        TokenOut storage out = outs[_fromHash];
+        TokenOut storage out = outs[_fromIndex];
         if (out.value <= 0) {
             int approval;
             if (msg.sender == operator1) {
@@ -55,25 +76,28 @@ contract Bridge is Ownable, Pausable, ReentrancyGuard {
             } else {
                 approval = 2;
             }
-            outs[_fromHash] = TokenOut({
+            outs[_fromIndex] = TokenOut({
+                token: _token,
                 to: _to,
                 value: _value,
                 approveCount: approval
             });
         } else {
-            if ((msg.sender == operator1 && out.approveCount == 2) || (msg.sender == operator2 && out.approveCount == 1)) {
-                IERC20(_token).transfer(_to, _value);
+            if ((msg.sender == operator1 && out.approveCount == 2) 
+                || (msg.sender == operator2 && out.approveCount == 1)) {
+                require(_value == out.value && out.token == _token, "Out record mismatch");
                 out.approveCount = 3;
+                IERC20(_token).transfer(_to, _value);
             } else {
                 revert("Invalid approval count");
             }
         }
     }
 
-    function sendEther(string memory _fromHash, address payable _to, uint256 _value) public whenNotPaused nonReentrant {
-        require(operator1 == msg.sender || operator2 == msg.sender, "Invalid opeartor");
+    function sendEther(uint256 _fromIndex, address payable _to, uint256 _value) public whenNotPaused nonReentrant {
+        require(operator1 == msg.sender || operator2 == msg.sender, "Invalid operator");
         require(_value > 0, "Invalid value");
-        TokenOut storage out = outs[_fromHash];
+        TokenOut storage out = outs[_fromIndex];
         if (out.value <= 0) {
             int approval;
             if (msg.sender == operator1) {
@@ -81,47 +105,59 @@ contract Bridge is Ownable, Pausable, ReentrancyGuard {
             } else {
                 approval = 2;
             }
-            outs[_fromHash] = TokenOut({
+            outs[_fromIndex] = TokenOut({
+                token: address(0),
                 to: _to,
                 value: _value,
                 approveCount: approval
             });
         } else {
-            if ((msg.sender == operator1 && out.approveCount == 2) || (msg.sender == operator2 && out.approveCount == 1)) {
+            if ((msg.sender == operator1 && out.approveCount == 2) 
+                || (msg.sender == operator2 && out.approveCount == 1)) {
+                require(_value == out.value && out.token == address(0), "Out record mismatch");
+                out.approveCount = 3;
                 (bool sent, bytes memory data) = _to.call{value: _value}("");
                 require(sent, "Failed to send Ether");
-                out.approveCount = 3;
             } else {
                 revert("Invalid approval count");
             }
         }
     }
 
-    function deposit(address _token, uint256 _value) payable public whenNotPaused nonReentrant {
+    function depositEther() payable public whenNotPaused {
         if (msg.value > 0) {
-            ins.push(TokenIn({
-                from: msg.sender,
-                value: msg.value
-            }));
+            TokenIn storage inRec = ins[inLength];
+            inRec.token = address(0);
+            inRec.from = msg.sender;
+            inRec.value = msg.value;
+            inLength += 1;
         }
+    }
+
+    function depositToken(address _token, uint256 _value) payable public whenNotPaused nonReentrant {
         if (_value > 0) {
             uint256 balance1 = IERC20(_token).balanceOf(address(this));
             IERC20(_token).transferFrom(msg.sender, address(this), _value);
             uint256 balance2 = IERC20(_token).balanceOf(address(this));
             require((balance2 - balance1) == _value, "Transfer token in failure");
-            ins.push(TokenIn({
-                from: msg.sender,
-                value: _value
-            }));
+            TokenIn storage inRec = ins[inLength];
+            inRec.token = _token;
+            inRec.from = msg.sender;
+            inRec.value = _value;
+            inLength += 1;
         }
     }
 
     function getIn(uint256 offset) public view returns (TokenIn memory result) {
-        require(ins.length > offset || offset < 0, "Invalid offset");
+        require(inLength > offset || offset < 0, "Invalid offset");
         result = ins[offset];
     }
 
-    function getOut(string memory fromHash) public view returns (TokenOut memory result) {
+    function getOut(uint256 fromHash) public view returns (TokenOut memory result) {
         return outs[fromHash];
+    }
+
+    function getInLength() public view returns (uint256 result) {
+        result = inLength;
     }
 }
