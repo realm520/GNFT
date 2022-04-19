@@ -3,6 +3,10 @@
 Forked from https://github.com/paulrberg/solidity-template.
 Now I saved some smart contract code in this repository.
 
+* Bridge.sol - Transfer token between EVM compatible chains.
+* svg.sol - Output svg code from smart contract.
+* GNFT.sol - NFT with permanent copyright (not complete tested).
+
 
 ## Integration
 - [Hardhat](https://github.com/nomiclabs/hardhat): compile and run the smart contracts on a local development network
