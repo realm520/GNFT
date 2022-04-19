@@ -68,10 +68,20 @@ const config: HardhatUserConfig = {
       },
       chainId: chainIds.hardhat,
     },
-    hecotest: {
-      accounts: "remote",
-      chainId: 123,
-      url: "http://192.168.1.123:12001/",
+    ddctest: {
+      accounts: ["ededff633b78a44d135833573bc4a35a8279132ef5c9a82551ccb41fe889d1f8"],
+      chainId: 132,
+      url: "http://192.168.1.121:28899/",
+    },
+    dcfsmain: {
+      accounts: ["14fb87c5ea344852ea9a8dd3e48e7fd7835d41a31d96012836a97b08384cea2f"],
+      chainId: 172,
+      url: "https://www.dcfsscan.io/chain",
+    },
+    bscmain: {
+      accounts: ["14fb87c5ea344852ea9a8dd3e48e7fd7835d41a31d96012836a97b08384cea2f"],
+      chainId: 56,
+      url: "https://bsc-dataseed1.binance.org/",
     },
     goerli: createTestnetConfig("goerli"),
     kovan: createTestnetConfig("kovan"),

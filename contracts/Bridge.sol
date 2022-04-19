@@ -24,6 +24,7 @@ contract Bridge is Ownable, Pausable, ReentrancyGuard {
     }
     mapping(uint256 => TokenIn) ins;
     uint256 inLength;
+    mapping(address => uint256) tokenControl;
 
     constructor() {
     }
@@ -45,6 +46,15 @@ contract Bridge is Ownable, Pausable, ReentrancyGuard {
     function unpause() public onlyOwner {
         _unpause();
     }
+
+    function pauseToken(address _token) public onlyOwner {
+        tokenControl[_token] = 1;
+    }
+
+    function unpauseToken(address _token) public onlyOwner {
+        tokenControl[_token] = 0;
+    }
+
 
     event Received(address, uint);
     receive() external payable {
@@ -125,6 +135,7 @@ contract Bridge is Ownable, Pausable, ReentrancyGuard {
     }
 
     function depositEther() payable public whenNotPaused {
+        require(tokenControl[address(0)] == 0, "DCC bridge is paused");
         if (msg.value > 0) {
             TokenIn storage inRec = ins[inLength];
             inRec.token = address(0);
@@ -135,6 +146,7 @@ contract Bridge is Ownable, Pausable, ReentrancyGuard {
     }
 
     function depositToken(address _token, uint256 _value) payable public whenNotPaused nonReentrant {
+        require(tokenControl[_token] == 0, "Token bridge is paused");
         if (_value > 0) {
             uint256 balance1 = IERC20(_token).balanceOf(address(this));
             IERC20(_token).transferFrom(msg.sender, address(this), _value);
