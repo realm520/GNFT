@@ -1,7 +1,10 @@
-# Solidity Template
+# Solidity Smart Contract Collection
 
-My favourite setup for writing Solidity smart contracts.
+Forked from https://github.com/paulrberg/solidity-template.
+Now I saved some smart contract code in this repository.
 
+
+## Integration
 - [Hardhat](https://github.com/nomiclabs/hardhat): compile and run the smart contracts on a local development network
 - [TypeChain](https://github.com/ethereum-ts/TypeChain): generate TypeScript types for smart contracts
 - [Ethers](https://github.com/ethers-io/ethers.js/): renowned Ethereum library and wallet implementation
@@ -10,8 +13,6 @@ My favourite setup for writing Solidity smart contracts.
 - [Solcover](https://github.com/sc-forks/solidity-coverage): code coverage
 - [Prettier Plugin Solidity](https://github.com/prettier-solidity/prettier-plugin-solidity): code formatter
 
-This is a GitHub template, which means you can reuse it as many times as you want. You can do that by clicking the "Use this
-template" button at the top of the page.
 
 ## Usage
 
